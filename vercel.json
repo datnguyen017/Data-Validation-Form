@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "framework": "sveltekit",
+  "installCommand": "cd form-page && npm install",
+  "buildCommand": "cd form-page && npm run build",
+  "outputDirectory": "form-page/.vercel/output"
+}
