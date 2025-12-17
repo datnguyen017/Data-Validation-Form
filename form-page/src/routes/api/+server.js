@@ -24,7 +24,8 @@ export async function POST({ request, fetch }) {
     short_text1woq5j81: data.description,
     multi_selecteqcgsmbr: selectedColumns.length ? { labels: selectedColumns } : undefined,
     short_textn4h7mq9n: data.expected_value,
-    short_textee2me3mg: data.data_filters
+    short_textee2me3mg: data.data_filters,
+    color_mkyqcbh3: { label: 'needs to be reviewed' }
   };
 
   Object.keys(columnValues).forEach((k) => {
