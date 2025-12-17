@@ -99,7 +99,8 @@
     description,
     target_column: column,
     expected_value: expectedValue,
-    data_filters: dataFilters
+    data_filters: dataFilters,
+    timestamp: new Date().toISOString()
   });
 
   const syntaxHighlight = (json) => {
