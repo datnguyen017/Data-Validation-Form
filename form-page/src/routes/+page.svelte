@@ -990,6 +990,8 @@ textarea:focus {
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 16px;
+  font-family: inherit;
+  font-size: 14px;
 }
 
 .chip button {
@@ -999,6 +1001,8 @@ textarea:focus {
   font-weight: 700;
   padding: 0 4px;
   cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
 }
 
 .combo-list {
