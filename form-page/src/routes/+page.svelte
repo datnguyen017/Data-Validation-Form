@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { SpeedInsights } from "@vercel/speed-insights/next"
+  // import { SpeedInsights } from "@vercel/speed-insights/next"
 
   let email = '';
   let functionalArea = '';
