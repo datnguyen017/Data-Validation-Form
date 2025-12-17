@@ -12,14 +12,17 @@ export async function POST({ request, fetch }) {
   }
 
   const data = await request.json();
+  const selectedColumns = Array.isArray(data.target_columns)
+    ? data.target_columns
+    : data.target_column
+    ? [data.target_column]
+    : [];
 
   const columnValues = {
     email05ehfx6w: { email: data.email, text: data.email },
     short_textjquy7y9s: data.functional_area,
     short_text1woq5j81: data.description,
-    multi_selecteqcgsmbr: data.target_column
-      ? { labels: [data.target_column] }
-      : undefined,
+    multi_selecteqcgsmbr: selectedColumns.length ? { labels: selectedColumns } : undefined,
     short_textn4h7mq9n: data.expected_value,
     short_textee2me3mg: data.data_filters
   };

@@ -5,7 +5,7 @@
   let email = '';
   let functionalArea = '';
   let description = '';
-  let column = '';
+  let columns = [];
   let columnSearch = '';
   let showColumnList = false;
   let expectedValue = '';
@@ -22,9 +22,11 @@
 
   let dark = true;
 
-  $: filteredColumns = COLUMN_OPTIONS.filter((opt) =>
-    opt.toLowerCase().includes(columnSearch.toLowerCase())
-  );
+  $: filteredColumns = COLUMN_OPTIONS.filter((opt) => {
+    const matches = opt.toLowerCase().includes(columnSearch.toLowerCase());
+    const notSelected = !columns.includes(opt);
+    return matches && notSelected;
+  });
 
   function toggleDark() {
     dark = !dark;
@@ -35,7 +37,7 @@
     const problems = {};
     if (!email.trim()) problems.email = 'Email is required';
     if (!description.trim()) problems.description = 'Description is required';
-    if (!column.trim()) problems.column = 'Column is required';
+    if (!columns.length) problems.columns = 'Select at least one column';
     if (!expectedValue.trim()) problems.expectedValue = 'Expected value is required';
     fieldErrors = problems;
     return Object.keys(problems).length === 0;
@@ -65,6 +67,17 @@
       showModal = false;
       closingModal = false;
     }, 180);
+  }
+
+  function addColumn(opt) {
+    if (!columns.includes(opt)) {
+      columns = [...columns, opt];
+    }
+    columnSearch = '';
+  }
+
+  function removeColumn(opt) {
+    columns = columns.filter((c) => c !== opt);
   }
 
   async function submitForm() {
@@ -118,7 +131,7 @@
       email,
       functional_area: functionalArea,
       description,
-      target_column: column,
+      target_columns: columns,
       expected_value: expectedValue,
       data_filters: dataFilters,
       timestamp_iso: now.toISOString(),
@@ -675,10 +688,21 @@
               type="text"
               bind:value={columnSearch}
               placeholder="Start typing..."
-              class:error={fieldErrors.column}
+              class:error={fieldErrors.columns}
               on:focus={() => (showColumnList = true)}
               on:blur={() => setTimeout(() => showColumnList = false, 120)}
             />
+
+            {#if columns.length}
+              <div class="chips">
+                {#each columns as col}
+                  <span class="chip">
+                    {col}
+                    <button type="button" aria-label={`Remove ${col}`} on:click={() => removeColumn(col)}>×</button>
+                  </span>
+                {/each}
+              </div>
+            {/if}
 
             {#if showColumnList}
               <div class="combo-list">
@@ -686,7 +710,7 @@
                   <div class="combo-empty">No matches</div>
                 {:else}
                   {#each filteredColumns as opt}
-                    <button type="button" on:click={() => (column = columnSearch = opt)}>
+                    <button type="button" on:click={() => addColumn(opt)}>
                       {opt}
                     </button>
                   {/each}
@@ -695,7 +719,7 @@
             {/if}
           </div>
 
-          {#if fieldErrors.column}<div class="error">{fieldErrors.column}</div>{/if}
+          {#if fieldErrors.columns}<div class="error">{fieldErrors.columns}</div>{/if}
         </div>
 
         <div class="field">
@@ -950,6 +974,33 @@ textarea:focus {
 /* COMBO */
 .combo { position: relative; }
 
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.chip button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-weight: 700;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
 .combo-list {
   position: absolute;
   top: calc(100% + 6px);
@@ -1000,6 +1051,13 @@ button {
   font-weight: 500;
   font-family: inherit;
   transition: background-color 0.6s ease, color 0.6s ease, border-color 0.6s ease;
+}
+
+.chip button {
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  border-radius: 0;
 }
 
 .page.dark button {
