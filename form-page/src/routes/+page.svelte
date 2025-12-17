@@ -93,15 +93,19 @@
     localStorage.setItem('dv-dark', dark);
   });
 
-  const buildPayload = () => ({
-    email,
-    functional_area: functionalArea,
-    description,
-    target_column: column,
-    expected_value: expectedValue,
-    data_filters: dataFilters,
-    timestamp: new Date().toISOString()
-  });
+  const buildPayload = () => {
+    const now = new Date();
+    return {
+      email,
+      functional_area: functionalArea,
+      description,
+      target_column: column,
+      expected_value: expectedValue,
+      data_filters: dataFilters,
+      timestamp_iso: now.toISOString(),
+      timestamp_local: now.toLocaleString()
+    };
+  };
 
   const syntaxHighlight = (json) => {
     const escaped = json
