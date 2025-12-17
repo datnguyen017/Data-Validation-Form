@@ -991,7 +991,8 @@ textarea:focus {
   border: 1px solid var(--border);
   border-radius: 16px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .chip button {
@@ -1003,6 +1004,7 @@ textarea:focus {
   cursor: pointer;
   font-size: 14px;
   font-family: inherit;
+  transition: color 0.3s ease;
 }
 
 .combo-list {
