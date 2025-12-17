@@ -78,13 +78,32 @@
       return;
     }
 
-    await new Promise(r => setTimeout(r, 800));
-    success = true;
-    loading = false;
-    modalMessage = 'Your validation request has been sent.';
-    modalVariant = 'success';
-    closingModal = false;
-    showModal = true;
+    const payload = buildPayload();
+
+    try {
+      const res = await fetch('/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.error || 'Request failed');
+      }
+
+      success = true;
+      modalMessage = 'Your validation request has been sent.';
+      modalVariant = 'success';
+    } catch (err) {
+      error = err?.message || 'Something went wrong';
+      modalMessage = error;
+      modalVariant = 'error';
+    } finally {
+      closingModal = false;
+      showModal = true;
+      loading = false;
+    }
   }
 
   onMount(() => {
