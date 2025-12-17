@@ -1,15 +1,17 @@
 import { json } from '@sveltejs/kit';
-import { MONDAY_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 const MONDAY_API = 'https://api.monday.com/v2';
 const BOARD_ID = '18391825440';
 
 export async function POST({ request, fetch }) {
-  const data = await request.json();
+  const MONDAY_API_KEY = env.MONDAY_API_KEY;
 
   if (!MONDAY_API_KEY) {
     return json({ error: 'Missing MONDAY_API_KEY' }, { status: 500 });
   }
+
+  const data = await request.json();
 
   const columnValues = {
     email05ehfx6w: { email: data.email, text: data.email },
@@ -21,12 +23,6 @@ export async function POST({ request, fetch }) {
     short_textn4h7mq9n: data.expected_value,
     short_textee2me3mg: data.data_filters
   };
-
-  if (data.assigned_to) {
-    columnValues.multiple_person_mkyj1z0t = {
-      personsAndTeams: [{ id: data.assigned_to, type: 'person' }]
-    };
-  }
 
   Object.keys(columnValues).forEach((k) => {
     if (columnValues[k] === undefined) delete columnValues[k];
@@ -69,8 +65,5 @@ export async function POST({ request, fetch }) {
     );
   }
 
-  return json({
-    success: true,
-    itemId: result.data.create_item.id
-  });
+  return json({ success: true, itemId: result.data.create_item.id });
 }
