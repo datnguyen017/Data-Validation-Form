@@ -45,6 +45,10 @@ export async function POST({ request }) {
     }
   `;
 
+  if (!API_KEY) {
+    return json({ error: 'Missing MONDAY_API_KEY on server' }, { status: 500 });
+  }
+
   const res = await fetch(MONDAY_API, {
     method: 'POST',
     headers: {
@@ -61,9 +65,17 @@ export async function POST({ request }) {
     })
   });
 
-  if (!res.ok) {
-    return json({ error: 'Monday API failed' }, { status: 500 });
+  const result = await res.json().catch(() => null);
+
+  const graphqlErrors = result?.errors;
+  const apiErrorMessage =
+    graphqlErrors?.map((e) => e.message).join('; ') ||
+    result?.error_message ||
+    (!res.ok ? `HTTP ${res.status}` : null);
+
+  if (!res.ok || apiErrorMessage) {
+    return json({ error: apiErrorMessage || 'Monday API failed' }, { status: 500 });
   }
 
-  return json({ success: true });
+  return json({ success: true, itemId: result?.data?.create_item?.id ?? null });
 }
