@@ -6,16 +6,15 @@
 
   let reduceMotion = false;
 
-  function pageTransition(node, { duration = 220 } = {}) {
-    const dy = reduceMotion ? 0 : 10;
-    const blur = reduceMotion ? 0 : 8;
+  function pageTransition(node, { duration = 180 } = {}) {
+    const dy = reduceMotion ? 0 : 6;
     const transitionDuration = reduceMotion ? 0 : duration;
 
     return {
       duration: transitionDuration,
       easing: cubicOut,
       css: (t) =>
-        `opacity: ${t}; transform: translateY(${(1 - t) * dy}px); filter: blur(${(1 - t) * blur}px);`
+        `opacity: ${t}; transform: translateY(${(1 - t) * dy}px);`
     };
   }
 
@@ -51,7 +50,7 @@
 </script>
 
 {#key $page.url.pathname}
-  <div class="route-transition" transition:pageTransition={{ duration: 220 }}>
+  <div class="route-transition" transition:pageTransition={{ duration: 180 }}>
     <slot />
   </div>
 {/key}
