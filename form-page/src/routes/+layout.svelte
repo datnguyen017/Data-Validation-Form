@@ -1,22 +1,25 @@
 <script>
   import { onMount } from 'svelte';
-  import { cubicOut } from 'svelte/easing';
+  import { cubicInOut } from 'svelte/easing';
+  import { crossfade } from 'svelte/transition';
   import { page } from '$app/stores';
   import './styles.css';
 
   let reduceMotion = false;
 
-  function pageTransition(node, { duration = 180 } = {}) {
-    const dy = reduceMotion ? 0 : 6;
-    const transitionDuration = reduceMotion ? 0 : duration;
-
-    return {
-      duration: transitionDuration,
-      easing: cubicOut,
-      css: (t) =>
-        `opacity: ${t}; transform: translateY(${(1 - t) * dy}px);`
-    };
-  }
+  const [send, receive] = crossfade({
+    duration: () => (reduceMotion ? 0 : 240),
+    easing: cubicInOut,
+    fallback: (node, params) => {
+      const dy = reduceMotion ? 0 : 8;
+      const duration = reduceMotion ? 0 : 200;
+      return {
+        duration,
+        easing: cubicInOut,
+        css: (t) => `opacity: ${t}; transform: translateY(${(1 - t) * dy}px);`
+      };
+    }
+  });
 
   function applyRootTheme(isDark) {
     document.documentElement.classList.toggle('dv-dark', Boolean(isDark));
@@ -50,7 +53,7 @@
 </script>
 
 {#key $page.url.pathname}
-  <div class="route-transition" transition:pageTransition={{ duration: 180 }}>
+  <div class="route-transition" in:receive out:send>
     <slot />
   </div>
 {/key}
