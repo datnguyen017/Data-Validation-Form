@@ -2,34 +2,123 @@ import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
 const MONDAY_API = 'https://api.monday.com/v2';
-const BOARD_ID = '18391825440';
+const DEFAULT_BOARD_ID = '18391825440';
+
+/**
+ * @param {Record<string, unknown>} obj
+ */
+function removeUndefined(obj) {
+  /** @type {Record<string, unknown>} */
+  const cleaned = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) continue;
+    cleaned[key] = value;
+  }
+  return cleaned;
+}
+
+/**
+ * @param {unknown} value
+ */
+function normalizeString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * @param {unknown} value
+ */
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((v) => String(v)).filter(Boolean);
+}
 
 export async function POST({ request, fetch }) {
   const MONDAY_API_KEY = env.MONDAY_API_KEY;
+  const BOARD_ID = env.MONDAY_BOARD_ID || DEFAULT_BOARD_ID;
+  const DATA_REQUEST_BOARD_ID = env.MONDAY_DATA_REQUEST_BOARD_ID;
 
   if (!MONDAY_API_KEY) {
     return json({ error: 'Missing MONDAY_API_KEY' }, { status: 500 });
   }
 
+  /** @type {any} */
   const data = await request.json();
-  const selectedColumns = Array.isArray(data.target_columns)
-    ? data.target_columns
-    : data.target_column
-    ? [data.target_column]
-    : [];
 
-  const columnValues = {
-    email05ehfx6w: { email: data.email, text: data.email },
-    short_textjquy7y9s: data.functional_area,
-    short_text1woq5j81: data.description,
-    multi_selecteqcgsmbr: selectedColumns.length ? { labels: selectedColumns } : undefined,
-    short_textn4h7mq9n: data.expected_value,
-    short_textee2me3mg: data.data_filters
-  };
+  const issueType = normalizeString(data?.issue_type) || 'Data Validation';
+  const email = normalizeString(data?.email);
 
-  Object.keys(columnValues).forEach((k) => {
-    if (columnValues[k] === undefined) delete columnValues[k];
-  });
+  let itemName = normalizeString(data?.description) || 'New Request';
+
+  /** @type {Record<string, unknown>} */
+  let columnValues = {};
+  /** @type {string} */
+  let targetBoardId = BOARD_ID;
+
+  if (issueType === 'Functional Issue') {
+    const functionalIssueType = normalizeString(data?.functional_issue_type);
+    const otherProblem = normalizeString(data?.other_problem);
+    const date = normalizeString(data?.date) || new Date().toISOString().slice(0, 10);
+
+    itemName =
+      otherProblem ||
+      (functionalIssueType ? `Functional Issue: ${functionalIssueType}` : 'Functional Issue');
+
+    columnValues = removeUndefined({
+      ...(email ? { email05ehfx6w: { email, text: email } } : {}),
+      short_textjquy7y9s: functionalIssueType || undefined,
+      short_text1woq5j81: otherProblem || functionalIssueType || undefined,
+      short_textn4h7mq9n: date || undefined
+    });
+  } else if (issueType === 'Data Request') {
+    if (DATA_REQUEST_BOARD_ID) targetBoardId = DATA_REQUEST_BOARD_ID;
+
+    const source = normalizeString(data?.source);
+    const tableClass = normalizeString(data?.table_class);
+    const fieldChar = normalizeString(data?.field_char);
+    const reason = normalizeString(data?.reason);
+    const submitterName = normalizeString(data?.submitter_name);
+    const submitterEmail = normalizeString(data?.submitter_email);
+
+    const date =
+      normalizeString(data?.date) ||
+      normalizeString(data?.timestamp_iso).slice(0, 10) ||
+      new Date().toISOString().slice(0, 10);
+
+    itemName =
+      [tableClass, fieldChar].filter(Boolean).join(' - ') ||
+      reason ||
+      'New Data Request';
+
+    columnValues = removeUndefined({
+      text_mkyr15s3: source || undefined,
+      text_mkyr7bwx: tableClass || undefined,
+      text_mkyr611b: fieldChar || undefined,
+      text_mkyrbx7t: reason || undefined,
+      text_mkyrb653: submitterName || undefined,
+      text_mkyrgs3v: submitterEmail || undefined,
+      date4: date ? { date } : undefined
+    });
+  } else {
+    const selectedColumns = Array.isArray(data?.target_columns)
+      ? data.target_columns
+      : data?.target_column
+      ? [data.target_column]
+      : [];
+    const platformInput = normalizeStringArray(data?.platform_input);
+    const platformText = platformInput.join(', ');
+
+    columnValues = removeUndefined({
+      ...(email ? { email05ehfx6w: { email, text: email } } : {}),
+      short_textjquy7y9s: normalizeString(data?.functional_area) || undefined,
+      short_text1woq5j81: normalizeString(data?.description) || undefined,
+      multi_selecteqcgsmbr: selectedColumns.length ? { labels: selectedColumns } : undefined,
+      short_textn4h7mq9n: normalizeString(data?.expected_value) || undefined,
+      short_textee2me3mg: normalizeString(data?.data_filters) || undefined,
+      text_mkyqecg6: platformText || undefined
+    });
+
+    itemName = normalizeString(data?.description) || 'New Validation Request';
+  }
 
   const query = `
     mutation ($boardId: ID!, $itemName: String!, $columnValues: JSON!) {
@@ -52,8 +141,8 @@ export async function POST({ request, fetch }) {
     body: JSON.stringify({
       query,
       variables: {
-        boardId: BOARD_ID,
-        itemName: data.description || 'New Validation Request',
+        boardId: targetBoardId,
+        itemName,
         columnValues: JSON.stringify(columnValues)
       }
     })

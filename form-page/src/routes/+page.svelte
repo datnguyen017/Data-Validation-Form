@@ -14,8 +14,15 @@
   let filterRows = [{ column: '', operator: '=', value: '', search: '', showList: false }];
   let platformSelections = [];
   let issueType = '';
-  let issueTypeDraft = '';
+  let issueTypeDraft = 'Data Validation';
   let activeIssueType = '';
+  let selectionPulse = false;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let selectionPulseTimer = null;
+  let issuePreviewSrc = '';
+  let previewFading = false;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let previewFadeTimer = null;
   let showIssueModal = true;
   let issueModalError = '';
   let closingIssueModal = false;
@@ -44,7 +51,7 @@
 
   function goBackToIssueSelect() {
     issueType = '';
-    issueTypeDraft = '';
+    issueTypeDraft = 'Data Validation';
     showIssueModal = true;
     closingIssueModal = false;
   }
@@ -247,6 +254,39 @@
   };
 
   $: activeIssueType = showIssueModal ? issueTypeDraft : issueType;
+
+  function computePreviewSrc(selection) {
+    if (selection === 'Data Request') return '/data-request';
+    if (selection === 'Functional Issue') return '/functional-issue';
+    return '';
+  }
+
+  function triggerSelectionTransition() {
+    if (!showIssueModal) return;
+
+    if (selectionPulseTimer) clearTimeout(selectionPulseTimer);
+    selectionPulse = true;
+    selectionPulseTimer = setTimeout(() => {
+      selectionPulse = false;
+      selectionPulseTimer = null;
+    }, 360);
+  }
+
+  /**
+   * @param {unknown} nextSelection
+   */
+  function syncIssuePreview(nextSelection) {
+    const nextSrc = computePreviewSrc(typeof nextSelection === 'string' ? nextSelection : '');
+    if (nextSrc === issuePreviewSrc) return;
+
+    if (previewFadeTimer) clearTimeout(previewFadeTimer);
+    previewFading = true;
+    previewFadeTimer = setTimeout(() => {
+      issuePreviewSrc = nextSrc;
+      previewFading = false;
+      previewFadeTimer = null;
+    }, 180);
+  }
 
    const COLUMN_OPTIONS = [
    "MATERIAL_NUMBER",
@@ -717,15 +757,9 @@
   ];
 </script>
 
-<div
-  class="page claude-ui"
-  class:dark
-  class:validation-bg={activeIssueType === 'Data Validation'}
-  class:glassy={activeIssueType === 'Data Request'}
-  class:functional-bg={activeIssueType === 'Functional Issue'}
->
-  {#if issueType}
-    <div class="window" class:content-enter={issueType}>
+<div class="page claude-ui" class:dark>
+  {#if activeIssueType === 'Data Validation'}
+    <div class="window" class:content-enter={activeIssueType}>
 
     <!-- Toolbar -->
     <div class="toolbar">
@@ -986,14 +1020,32 @@
     <div
       class="issue-backdrop"
       class:closing={closingIssueModal}
-      class:issue-bg-validation={activeIssueType === 'Data Validation'}
-      class:issue-bg-request={activeIssueType === 'Data Request'}
-      class:issue-bg-functional={activeIssueType === 'Functional Issue'}
+      class:selection-pulse={selectionPulse}
     >
+      {#if issuePreviewSrc || previewFading}
+        <div class="issue-preview" class:fading={previewFading} aria-hidden="true">
+          {#if issuePreviewSrc}
+            <iframe title="Issue Form Preview" src={issuePreviewSrc} tabindex="-1"></iframe>
+          {/if}
+        </div>
+      {/if}
+
       <div class="issue-modal" class:closing={closingIssueModal}>
-        <h2>What's your issue?</h2>
+        <div class="issue-modal-header">
+          <h2>What's your issue?</h2>
+          <button class="dark-toggle" on:click={toggleDark} aria-label="Toggle theme">
+            <span class:active={dark}></span>
+          </button>
+        </div>
         <div class="issue-field">
-          <select bind:value={issueTypeDraft}>
+          <select
+            bind:value={issueTypeDraft}
+            on:change={(e) => {
+              const next = e?.currentTarget?.value;
+              triggerSelectionTransition();
+              syncIssuePreview(next);
+            }}
+          >
             <option value="">Select one</option>
             {#each ISSUE_OPTIONS as opt}
               <option value={opt}>{opt}</option>
