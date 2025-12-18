@@ -3,6 +3,7 @@ import { env } from '$env/dynamic/private';
 
 const MONDAY_API = 'https://api.monday.com/v2';
 const DEFAULT_BOARD_ID = '18391825440';
+const DEFAULT_DATA_REQUEST_BOARD_ID = '18392625365';
 
 /**
  * @param {Record<string, unknown>} obj
@@ -35,7 +36,7 @@ function normalizeStringArray(value) {
 export async function POST({ request, fetch }) {
   const MONDAY_API_KEY = env.MONDAY_API_KEY;
   const BOARD_ID = env.MONDAY_BOARD_ID || DEFAULT_BOARD_ID;
-  const DATA_REQUEST_BOARD_ID = env.MONDAY_DATA_REQUEST_BOARD_ID;
+  const DATA_REQUEST_BOARD_ID = env.MONDAY_DATA_REQUEST_BOARD_ID || DEFAULT_DATA_REQUEST_BOARD_ID;
 
   if (!MONDAY_API_KEY) {
     return json({ error: 'Missing MONDAY_API_KEY' }, { status: 500 });
@@ -150,12 +151,17 @@ export async function POST({ request, fetch }) {
 
   const result = await res.json();
 
-  if (!res.ok || result?.errors) {
+  const createdItemId = result?.data?.create_item?.id;
+
+  if (!res.ok || result?.errors || !createdItemId) {
     return json(
-      { error: result?.errors?.map((e) => e.message).join('; ') || 'Monday API error' },
+      {
+        error: result?.errors?.map((e) => e.message).join('; ') || 'Monday API error',
+        boardId: targetBoardId
+      },
       { status: 500 }
     );
   }
 
-  return json({ success: true, itemId: result.data.create_item.id });
+  return json({ success: true, itemId: createdItemId, boardId: targetBoardId });
 }
