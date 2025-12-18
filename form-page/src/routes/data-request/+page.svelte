@@ -1,7 +1,6 @@
 <script>
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import '../styles.css';
 
   const SOURCE_OPTIONS = ['Material Header', 'Classification', 'Other'];
 
@@ -27,11 +26,13 @@
     const saved = localStorage.getItem('dv-dark');
     dark = saved !== null ? saved === 'true' : true;
     localStorage.setItem('dv-dark', String(dark));
+    window.dispatchEvent(new CustomEvent('dv-theme', { detail: { dark } }));
   });
 
   function toggleDark() {
     dark = !dark;
     localStorage.setItem('dv-dark', String(dark));
+    window.dispatchEvent(new CustomEvent('dv-theme', { detail: { dark } }));
   }
 
   function validate() {

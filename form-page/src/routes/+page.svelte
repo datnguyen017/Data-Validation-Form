@@ -1,7 +1,6 @@
 <script>
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import './styles.css';
   // import { SpeedInsights } from "@vercel/speed-insights/next"
 
   let email = '';
@@ -46,7 +45,8 @@
 
   function toggleDark() {
     dark = !dark;
-    localStorage.setItem('dv-dark', dark);
+    localStorage.setItem('dv-dark', String(dark));
+    window.dispatchEvent(new CustomEvent('dv-theme', { detail: { dark } }));
   }
 
   function goBackToIssueSelect() {
@@ -145,7 +145,8 @@
   onMount(() => {
     const saved = localStorage.getItem('dv-dark');
     dark = saved !== null ? saved === 'true' : true;
-    localStorage.setItem('dv-dark', dark);
+    localStorage.setItem('dv-dark', String(dark));
+    window.dispatchEvent(new CustomEvent('dv-theme', { detail: { dark } }));
   });
 
   const buildPayload = () => {
