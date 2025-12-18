@@ -156,12 +156,11 @@ export async function POST({ request, fetch }) {
   if (!res.ok || result?.errors || !createdItemId) {
     return json(
       {
-        error: result?.errors?.map((e) => e.message).join('; ') || 'Monday API error',
-        boardId: targetBoardId
+        error: result?.errors?.map((e) => e.message).join('; ') || 'Monday API error'
       },
       { status: 500 }
     );
   }
 
-  return json({ success: true, itemId: createdItemId, boardId: targetBoardId });
+  return json({ success: true });
 }

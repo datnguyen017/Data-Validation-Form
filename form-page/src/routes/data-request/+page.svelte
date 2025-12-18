@@ -130,9 +130,7 @@
       }
 
       success = true;
-      modalMessage = body?.itemId
-        ? `Your data request has been sent. (Item ID: ${body.itemId})`
-        : 'Your data request has been sent.';
+      modalMessage = 'Your data request has been sent.';
       modalVariant = 'success';
     } catch (err) {
       modalMessage = err?.message || 'Something went wrong';
