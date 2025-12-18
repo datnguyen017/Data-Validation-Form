@@ -18,6 +18,7 @@
   let showModal = false;
   let modalPayloadLines = [];
   let modalMessage = '';
+  let modalVariant = 'success';
   let closingModal = false;
 
   let dark = true;
@@ -25,12 +26,12 @@
   onMount(() => {
     const saved = localStorage.getItem('dv-dark');
     dark = saved !== null ? saved === 'true' : true;
-    localStorage.setItem('dv-dark', dark);
+    localStorage.setItem('dv-dark', String(dark));
   });
 
   function toggleDark() {
     dark = !dark;
-    localStorage.setItem('dv-dark', dark);
+    localStorage.setItem('dv-dark', String(dark));
   }
 
   function validate() {
@@ -89,6 +90,14 @@
       : [];
   };
 
+  function showDebugPayload() {
+    modalPayloadLines = toHighlightedLines(buildPayload());
+    modalMessage = '';
+    modalVariant = 'info';
+    closingModal = false;
+    showModal = true;
+  }
+
   const closeModal = () => {
     if (closingModal) return;
     closingModal = true;
@@ -104,14 +113,33 @@
     loading = true;
     success = false;
     modalMessage = '';
+    modalPayloadLines = [];
+    modalVariant = 'success';
 
-    const payload = buildPayload();
-    modalPayloadLines = toHighlightedLines(payload);
-    modalMessage = 'Request captured. Share or hook this payload to your API.';
-    success = true;
-    showModal = true;
-    closingModal = false;
-    loading = false;
+    try {
+      const payload = buildPayload();
+      const res = await fetch('/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.error || 'Request failed');
+      }
+
+      success = true;
+      modalMessage = 'Your data request has been sent.';
+      modalVariant = 'success';
+    } catch (err) {
+      modalMessage = err?.message || 'Something went wrong';
+      modalVariant = 'error';
+    } finally {
+      showModal = true;
+      closingModal = false;
+      loading = false;
+    }
   };
 </script>
 
@@ -170,7 +198,7 @@
         </div>
 
         <div class="field">
-          <label>Submitted By</label>
+          <div class="subtext claude-body" style="margin-bottom: 6px;">Submitted By</div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
               <div class="subtext">Name</div>
@@ -193,6 +221,8 @@
     </div>
   </div>
 
+  <button class="debug-button" on:click={showDebugPayload}>Show Payload</button>
+
   {#if showModal}
     <div
       class="modal-backdrop"
@@ -213,21 +243,24 @@
         on:click|stopPropagation
         on:keydown={(e) => e.key === 'Escape' && closeModal()}
       >
-        <div class="modal-message">{modalMessage}</div>
-        <div class="code-block">
-          <div class="code-header">
-            <span class="code-title">Payload</span>
-            <span class="code-meta">JSON | {modalPayloadLines.length} lines</span>
+        {#if modalVariant === 'info'}
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-title">Payload</span>
+              <span class="code-meta">JSON | {modalPayloadLines.length} lines</span>
+            </div>
+            <div class="code-body" role="presentation">
+              {#each modalPayloadLines as line}
+                <div class="code-line">
+                  <span class="code-number">{line.number}</span>
+                  <span class="code-text">{@html line.line}</span>
+                </div>
+              {/each}
+            </div>
           </div>
-          <div class="code-body" role="presentation">
-            {#each modalPayloadLines as line}
-              <div class="code-line">
-                <span class="code-number">{line.number}</span>
-                <span class="code-text">{@html line.line}</span>
-              </div>
-            {/each}
-          </div>
-        </div>
+        {:else}
+          <div class="modal-message">{modalMessage}</div>
+        {/if}
         <div class="modal-actions">
           <button class="modal-close" on:click={closeModal}>Close</button>
         </div>
