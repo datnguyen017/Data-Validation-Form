@@ -1,5 +1,7 @@
 <script>
+  import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import './styles.css';
   // import { SpeedInsights } from "@vercel/speed-insights/next"
 
   let email = '';
@@ -9,7 +11,14 @@
   let columnSearch = '';
   let showColumnList = false;
   let expectedValue = '';
-  let dataFilters = '';
+  let filterRows = [{ column: '', operator: '=', value: '', search: '', showList: false }];
+  let platformSelections = [];
+  let issueType = '';
+  let issueTypeDraft = '';
+  let activeIssueType = '';
+  let showIssueModal = true;
+  let issueModalError = '';
+  let closingIssueModal = false;
 
   let loading = false;
   let success = false;
@@ -31,6 +40,13 @@
   function toggleDark() {
     dark = !dark;
     localStorage.setItem('dv-dark', dark);
+  }
+
+  function goBackToIssueSelect() {
+    issueType = '';
+    issueTypeDraft = '';
+    showIssueModal = true;
+    closingIssueModal = false;
   }
 
   function validate() {
@@ -127,13 +143,28 @@
 
   const buildPayload = () => {
     const now = new Date();
+    const filters = filterRows
+      .map((f) => ({
+        column: f.column.trim(),
+        operator: f.operator.trim(),
+        value: f.value.trim()
+      }))
+      .filter((f) => f.column && f.operator && f.value);
+
+    const filtersText = filters.length
+      ? filters.map((f) => `${f.column} ${f.operator} ${f.value}`).join(' AND ')
+      : '';
+
     return {
       email,
       functional_area: functionalArea,
       description,
+      issue_type: issueType,
+      platform_input: platformSelections,
       target_columns: columns,
       expected_value: expectedValue,
-      data_filters: dataFilters,
+      data_filters: filtersText,
+      filters,
       timestamp_iso: now.toISOString(),
       timestamp_local: now.toLocaleString()
     };
@@ -159,6 +190,63 @@
       }
     );
   };
+
+  const OPERATORS = ['=', '<>', '>', '<', '>=', '<=', 'contains', 'starts_with', 'ends_with'];
+  const PLATFORM_OPTIONS = ['SAP', 'ABB.COM', 'ABB Shop', 'OMS'];
+  const ISSUE_OPTIONS = ['Data Validation', 'Data Request', 'Functional Issue'];
+
+  const addFilter = () => {
+    filterRows = [...filterRows, { column: '', operator: '=', value: '', search: '', showList: false }];
+  };
+
+  const removeFilter = (index) => {
+    if (filterRows.length === 1) return;
+    filterRows = filterRows.filter((_, i) => i !== index);
+  };
+
+  const updateFilter = (index, key, value) => {
+    filterRows = filterRows.map((row, i) => (i === index ? { ...row, [key]: value } : row));
+  };
+
+  const getFilteredColumns = (search) =>
+    COLUMN_OPTIONS.filter((opt) => opt.toLowerCase().includes((search || '').toLowerCase()));
+
+  const setFilterSearch = (index, value) => {
+    filterRows = filterRows.map((row, i) =>
+      i === index ? { ...row, search: value, column: value } : row
+    );
+  };
+
+  const selectFilterColumn = (index, opt) => {
+    filterRows = filterRows.map((row, i) =>
+      i === index ? { ...row, column: opt, search: opt, showList: false } : row
+    );
+  };
+
+  const confirmIssueType = () => {
+    if (!issueTypeDraft) {
+      issueModalError = 'Please select an issue type.';
+      return;
+    }
+    issueModalError = '';
+    if (issueTypeDraft === 'Data Request') {
+      goto('/data-request');
+      return;
+    }
+    if (issueTypeDraft === 'Functional Issue') {
+      goto('/functional-issue');
+      return;
+    }
+
+    issueType = issueTypeDraft;
+    closingIssueModal = true;
+    setTimeout(() => {
+      showIssueModal = false;
+      closingIssueModal = false;
+    }, 180);
+  };
+
+  $: activeIssueType = showIssueModal ? issueTypeDraft : issueType;
 
    const COLUMN_OPTIONS = [
    "MATERIAL_NUMBER",
@@ -629,22 +717,32 @@
   ];
 </script>
 
-<div class="page claude-ui" class:dark>
-  <div class="window">
+<div
+  class="page claude-ui"
+  class:dark
+  class:validation-bg={activeIssueType === 'Data Validation'}
+  class:glassy={activeIssueType === 'Data Request'}
+  class:functional-bg={activeIssueType === 'Functional Issue'}
+>
+  {#if issueType}
+    <div class="window" class:content-enter={issueType}>
 
     <!-- Toolbar -->
     <div class="toolbar">
       <div class="title claude-title">Data Validation</div>
 
-      <button class="dark-toggle" on:click={toggleDark} aria-label="Toggle theme">
-        <span class:active={dark}></span>
-      </button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" on:click={goBackToIssueSelect}>Back</button>
+        <button class="dark-toggle" on:click={toggleDark} aria-label="Toggle theme">
+          <span class:active={dark}></span>
+        </button>
+      </div>
     </div>
 
     <form class="pane" on:submit|preventDefault={submitForm}>
 
-      <!-- REQUEST DETAILS -->
-      <section>
+        <!-- REQUEST DETAILS -->
+        <section>
         <h2 class="claude-heading">Request Details</h2>
 
         <div class="field">
@@ -722,28 +820,110 @@
           {#if fieldErrors.columns}<div class="error">{fieldErrors.columns}</div>{/if}
         </div>
 
-        <div class="field">
-          <label for="expected-value-input">Expected Value</label>
-          <div class="subtext claude-body">
-            Please enter the expected value of the column(s) being validated.
+          <div class="field">
+            <label for="expected-value-input">Expected Value</label>
+            <div class="subtext claude-body">
+              Please enter the expected value of the column(s) being validated.
             If there is more than one column selected, enter them comma-delimited
             (ex: 1, 2, 3).
+            </div>
+            <input id="expected-value-input" bind:value={expectedValue} class:error={fieldErrors.expectedValue} />
+            {#if fieldErrors.expectedValue}<div class="error">{fieldErrors.expectedValue}</div>{/if}
           </div>
-          <input id="expected-value-input" bind:value={expectedValue} class:error={fieldErrors.expectedValue} />
-          {#if fieldErrors.expectedValue}<div class="error">{fieldErrors.expectedValue}</div>{/if}
-        </div>
+        </section>
 
-        <div class="field">
-          <label for="data-filters-input">Data Filters</label>
-          <div class="subtext claude-body">
-            Please enter any filters that are required.
-            Ex: Sales Org = "BEC" and Plant = "00A"
+        <div class="divider"></div>
+
+        <!-- PLATFORM INPUT -->
+        <section>
+          <h2 class="claude-heading">Platform Input</h2>
+          <div class="field">
+            <div class="subtext claude-body">Select all platforms involved in this request.</div>
+            <div class="checkbox-grid">
+              {#each PLATFORM_OPTIONS as option}
+                <label class="checkbox-card">
+                  <input type="checkbox" value={option} bind:group={platformSelections} />
+                  <span>{option}</span>
+                </label>
+              {/each}
+            </div>
           </div>
-          <textarea id="data-filters-input" rows="2" bind:value={dataFilters}></textarea>
-        </div>
-      </section>
+        </section>
 
-      <footer>
+        <div class="divider"></div>
+
+        <!-- DATA FILTERS -->
+        <section>
+          <h2 class="claude-heading">Data Filters</h2>
+          <div class="field">
+            <div class="subtext claude-body">
+              Build one or more filters to refine the validation set.
+            </div>
+
+            <div class="filters">
+              {#each filterRows as filter, index}
+                <div class="filter-row">
+                  <div class="combo">
+                    <input
+                      type="text"
+                      placeholder="Select column"
+                      bind:value={filter.search}
+                      on:focus={() => updateFilter(index, 'showList', true)}
+                      on:input={(e) => setFilterSearch(index, e.target.value)}
+                      on:blur={() => setTimeout(() => updateFilter(index, 'showList', false), 120)}
+                      aria-label="Filter column search"
+                    />
+
+                    {#if filter.showList}
+                      <div class="combo-list">
+                        {#if getFilteredColumns(filter.search).length === 0}
+                          <div class="combo-empty">No matches</div>
+                        {:else}
+                          {#each getFilteredColumns(filter.search) as opt}
+                            <button type="button" on:click={() => selectFilterColumn(index, opt)}>
+                              {opt}
+                            </button>
+                          {/each}
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+
+                  <select
+                    bind:value={filter.operator}
+                    on:change={(e) => updateFilter(index, 'operator', e.target.value)}
+                    aria-label="Filter operator"
+                  >
+                    {#each OPERATORS as op}
+                      <option value={op}>{op}</option>
+                    {/each}
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Value"
+                    bind:value={filter.value}
+                    on:input={(e) => updateFilter(index, 'value', e.target.value)}
+                  />
+
+                  {#if filterRows.length > 1}
+                    <button type="button" on:click={() => removeFilter(index)}>
+                      Remove
+                    </button>
+                  {/if}
+                </div>
+              {/each}
+
+              <div class="filter-actions">
+                <button type="button" on:click={addFilter}>
+                  Add another filter
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer>
         {#if success}<span class="success">Submitted</span>{/if}
         <button disabled={loading}>{loading ? 'Submitting…' : 'Submit'}</button>
       </footer>
@@ -798,463 +978,33 @@
       </div>
     </div>
   {/if}
+  {:else}
+    <div class="issue-placeholder"></div>
+  {/if}
+
+  {#if showIssueModal}
+    <div
+      class="issue-backdrop"
+      class:closing={closingIssueModal}
+      class:issue-bg-validation={activeIssueType === 'Data Validation'}
+      class:issue-bg-request={activeIssueType === 'Data Request'}
+      class:issue-bg-functional={activeIssueType === 'Functional Issue'}
+    >
+      <div class="issue-modal" class:closing={closingIssueModal}>
+        <h2>What's your issue?</h2>
+        <div class="issue-field">
+          <select bind:value={issueTypeDraft}>
+            <option value="">Select one</option>
+            {#each ISSUE_OPTIONS as opt}
+              <option value={opt}>{opt}</option>
+            {/each}
+          </select>
+          {#if issueModalError}<div class="error">{issueModalError}</div>{/if}
+        </div>
+        <div class="issue-actions">
+          <button on:click={confirmIssueType}>Continue</button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
-
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-/* REMOVE WHITE OUTLINE */
-:global(html),
-:global(body) {
-  margin: 0;
-  padding: 0;
-  background: #0f0f10;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-/* BASE */
-* { box-sizing: border-box; }
-
-.page {
-  --bg: #fafafa;
-  --window: #ffffff;
-  --field: #ffffff;
-  --border: #e5e7eb;
-  --text: #111827;
-  --muted: #6b7280;
-  --accent: #111827;
-  --soft: rgba(17,24,39,.08);
-  --code-bg: #0d1117;
-  --code-border: #1f2937;
-  --code-number: #6b7280;
-  --code-text: #e5e7eb;
-  --dropdown: #f8fafc;
-  --dropdown-text: var(--text);
-  --claude-accent: #e07a5f;
-  --toggle-track: rgba(224,122,95,0.2);
-  --toggle-track-active: rgba(224,122,95,0.32);
-  --toggle-knob-active: #e07a5f;
-
-  min-height: 100vh;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px;
-  font-family: Inter, system-ui, sans-serif;
-  color: var(--text);
-
-  transition: background 0.6s ease, color 0.6s ease;
-}
-
-.page.dark {
-  --bg: #0f0f10;
-  --window: #161618;
-  --field: #1c1c1f;
-  --border: #2a2a2e;
-  --text: #e5e7eb;
-  --muted: #9ca3af;
-  --accent: #e5e7eb;
-  --soft: rgba(255,255,255,.08);
-  --code-bg: #0b1224;
-  --code-border: #253049;
-  --code-number: #9ca3af;
-  --code-text: #f3f4f6;
-  --dropdown: #1f2733;
-  --dropdown-text: #ffffff;
-  --claude-accent: #e07a5f;
-  --toggle-track: rgba(224,122,95,0.28);
-  --toggle-track-active: rgba(224,122,95,0.36);
-  --toggle-knob-active: #e07a5f;
-}
-
-/* WINDOW */
-.window {
-  width: 720px;
-  background: var(--window);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.12);
-  transition: background 0.6s ease, border-color 0.6s ease;
-}
-
-/* TOOLBAR */
-.toolbar {
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 18px;
-  border-bottom: 1px solid var(--border);
-  transition: border-color 0.6s ease;
-}
-
-.title {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* TOGGLE */
-.dark-toggle {
-  width: 42px;
-  height: 22px;
-  border-radius: 999px;
-  border: none;
-  background: var(--toggle-track);
-  padding: 2px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.dark-toggle span {
-  display: block;
-  width: 18px;
-  height: 18px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.4s ease, background 0.4s ease;
-}
-
-.dark-toggle span.active {
-  transform: translateX(20px);
-  background: var(--toggle-knob-active);
-}
-
-/* CONTENT */
-.pane { padding: 5px 24px 24px; }
-
-section h2 {
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.field { margin-bottom: 16px; }
-
-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--claude-accent);
-}
-
-.subtext {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 4px 0 6px;
-}
-
-/* INPUTS */
-input,
-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--field);
-  color: var(--text);
-  font-family: inherit;
-  transition: background 0.6s ease, color 0.6s ease, border-color 0.6s ease;
-}
-
-input:focus,
-textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--soft);
-}
-
-/* DIVIDER */
-.divider {
-  height: 1px;
-  background: var(--border);
-  margin: 24px 0;
-  transition: background 0.6s ease;
-}
-
-/* COMBO */
-.combo { position: relative; }
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: var(--soft);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  font-family: inherit;
-  font-size: 13px;
-  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-}
-
-.chip button {
-  background: transparent;
-  border: none;
-  color: inherit;
-  font-weight: 700;
-  padding: 0 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-family: inherit;
-  transition: color 0.3s ease;
-}
-
-.combo-list {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  background: var(--dropdown);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  max-height: 240px;
-  overflow: auto;
-  box-shadow: 0 14px 32px rgba(0,0,0,.22);
-}
-
-.combo-list button {
-  width: 100%;
-  padding: 8px 10px;
-  border: none;
-  background: none;
-  color: var(--text);
-  text-align: left;
-  font-family: inherit;
-}
-
-.combo-list button:hover {
-  background: var(--soft);
-}
-
-.combo-empty {
-  padding: 8px 10px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* FOOTER */
-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-button {
-  padding: 8px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--claude-accent);
-  background: var(--claude-accent);
-  color: #fff;
-  font-weight: 500;
-  font-family: inherit;
-  transition: background-color 0.6s ease, color 0.6s ease, border-color 0.6s ease;
-}
-
-.chip button {
-  padding: 0 4px;
-  border: none;
-  background: transparent;
-  border-radius: 0;
-}
-
-.page.dark button {
-  color: #000;
-}
-
-/* Ensure dropdown buttons keep dropdown text color after global button styles */
-.combo-list button {
-  color: var(--dropdown-text);
-}
-
-.page.dark .combo-list button {
-  color: var(--dropdown-text);
-}
-
-.success {
-  display: inline-block;
-  padding: 8px 8px;
-  border-radius: 950px;
-  background: rgba(22,163,74,0.12);
-  color: #16a34a;
-  font-weight: 600;
-  font-size: 12px;
-  border: 1px solid rgba(22,163,74,0.4);
-}
-.error { color: #dc2626; font-size: 12px; }
-
-/* MODAL */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.45);
-  display: grid;
-  place-items: center;
-  backdrop-filter: blur(10px);
-  animation: fadeIn 160ms ease-out;
-}
-
-.modal-backdrop.closing {
-  animation: fadeOut 140ms ease-in forwards;
-}
-
-.modal {
-  background: var(--window);
-  border: 1px solid var(--border);
-  padding: 16px;
-  border-radius: 12px;
-  max-width: 520px;
-  font-family: inherit;
-  animation: popIn 200ms ease-out;
-}
-
-.modal.closing {
-  animation: popOut 140ms ease-in forwards;
-}
-
-.modal-close {
-  margin-top: 12px;
-  font-family: inherit;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.modal-message {
-  padding: 12px 10px;
-  color: var(--text);
-  font-family: inherit;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes popIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@keyframes popOut {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-}
-
-/* DEBUG */
-.debug-button {
-  position: fixed;
-  bottom: 18px;
-  right: 18px;
-}
-
-/* CODE VIEWER */
-.code-block {
-  background: var(--window);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-}
-
-.code-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  background: rgba(255,255,255,0.03);
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--muted);
-  letter-spacing: 0.01em;
-}
-
-.code-body {
-  background: var(--code-bg);
-  color: var(--code-text);
-  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-  padding: 12px 0;
-  max-height: 360px;
-  overflow: auto;
-}
-
-.code-line {
-  display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 10px;
-  padding: 0 14px;
-}
-
-.code-number {
-  color: var(--code-number);
-  text-align: right;
-  padding-right: 8px;
-  user-select: none;
-  opacity: 0.7;
-  font-variant-numeric: tabular-nums;
-}
-
-.code-text {
-  white-space: pre;
-}
-
-:global(.code-key) { color: #93c5fd; }
-:global(.code-string) { color: #a7f3d0; }
-:global(.code-number-value) { color: #f9a8d4; }
-:global(.code-boolean) { color: #fcd34d; }
-:global(.code-null) { color: #c084fc; }
-
-/* Claude-like typography using Inter */
-.claude-ui {
-  font-family: Inter, system-ui, sans-serif;
-  font-optical-sizing: auto;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-.claude-title {
-  font-weight: 600;
-  letter-spacing: -0.012em;
-  line-height: 1.15;
-}
-
-.claude-heading {
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-}
-
-.claude-body {
-  font-weight: 400;
-  letter-spacing: -0.005em;
-  line-height: 1.45;
-}
-
-</style>
