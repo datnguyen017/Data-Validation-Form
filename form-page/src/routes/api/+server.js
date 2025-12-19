@@ -65,10 +65,8 @@ export async function POST({ request, fetch }) {
       (functionalIssueType ? `Functional Issue: ${functionalIssueType}` : 'Functional Issue');
 
     columnValues = removeUndefined({
-      ...(email ? { email05ehfx6w: { email, text: email } } : {}),
-      short_textjquy7y9s: functionalIssueType || undefined,
-      short_text1woq5j81: otherProblem || functionalIssueType || undefined,
-      short_textn4h7mq9n: date || undefined
+      text_mkyrz9pq: otherProblem || functionalIssueType || undefined,
+      date4: date ? { date } : undefined
     });
   } else if (issueType === 'Data Request') {
     if (DATA_REQUEST_BOARD_ID) targetBoardId = DATA_REQUEST_BOARD_ID;
