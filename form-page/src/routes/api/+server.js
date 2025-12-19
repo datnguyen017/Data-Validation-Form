@@ -4,6 +4,7 @@ import { env } from '$env/dynamic/private';
 const MONDAY_API = 'https://api.monday.com/v2';
 const DEFAULT_BOARD_ID = '18391825440';
 const DEFAULT_DATA_REQUEST_BOARD_ID = '18392625365';
+const DEFAULT_FUNCTIONAL_BOARD_ID = DEFAULT_BOARD_ID;
 
 /**
  * @param {Record<string, unknown>} obj
@@ -37,6 +38,8 @@ export async function POST({ request, fetch }) {
   const MONDAY_API_KEY = env.MONDAY_API_KEY;
   const BOARD_ID = env.MONDAY_BOARD_ID || DEFAULT_BOARD_ID;
   const DATA_REQUEST_BOARD_ID = env.MONDAY_DATA_REQUEST_BOARD_ID || DEFAULT_DATA_REQUEST_BOARD_ID;
+  const FUNCTIONAL_BOARD_ID =
+    env.MONDAY_FUNCTIONAL_BOARD_ID || env.MONDAY_BOARD_ID || DEFAULT_FUNCTIONAL_BOARD_ID;
 
   if (!MONDAY_API_KEY) {
     return json({ error: 'Missing MONDAY_API_KEY' }, { status: 500 });
@@ -56,6 +59,8 @@ export async function POST({ request, fetch }) {
   let targetBoardId = BOARD_ID;
 
   if (issueType === 'Functional Issue') {
+    targetBoardId = FUNCTIONAL_BOARD_ID;
+
     const functionalIssueType = normalizeString(data?.functional_issue_type);
     const otherProblem = normalizeString(data?.other_problem);
     const date = normalizeString(data?.date) || new Date().toISOString().slice(0, 10);
@@ -152,9 +157,18 @@ export async function POST({ request, fetch }) {
   const createdItemId = result?.data?.create_item?.id;
 
   if (!res.ok || result?.errors || !createdItemId) {
+    const errorMessage =
+      result?.errors?.map((e) => e.message).join('; ') ||
+      result?.error ||
+      'Monday API error';
+
     return json(
       {
-        error: result?.errors?.map((e) => e.message).join('; ') || 'Monday API error'
+        error: errorMessage,
+        request: {
+          boardId: targetBoardId,
+          itemName
+        }
       },
       { status: 500 }
     );
