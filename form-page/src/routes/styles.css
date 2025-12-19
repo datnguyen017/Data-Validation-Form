@@ -13,17 +13,6 @@ body {
 :root {
   --app-bg: #fafafa;
   color-scheme: light;
-}
-
-html.dv-dark {
-  --app-bg: #0f0f10;
-  color-scheme: dark;
-}
-
-/* BASE */
-* { box-sizing: border-box; }
-
-.page {
   --bg: #fafafa;
   --window: #ffffff;
   --field: #ffffff;
@@ -44,8 +33,92 @@ html.dv-dark {
   --toggle-knob-active: #e07a5f;
   --issue-overlay: rgba(255, 255, 255, 0.62);
   --issue-preview-filter: blur(10px) saturate(1.03) brightness(1.02);
+}
 
-  min-height: 100vh;
+html.dv-dark {
+  --app-bg: #0f0f10;
+  color-scheme: dark;
+  --bg: #0f0f10;
+  --window: #161618;
+  --field: #1c1c1f;
+  --border: #2a2a2e;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --accent: #e5e7eb;
+  --soft: rgba(255,255,255,.08);
+  --code-bg: #0b1224;
+  --code-border: #253049;
+  --code-number: #9ca3af;
+  --code-text: #f3f4f6;
+  --dropdown: #1f2733;
+  --dropdown-text: #ffffff;
+  --claude-accent: #e07a5f;
+  --toggle-track: rgba(224,122,95,0.28);
+  --toggle-track-active: rgba(224,122,95,0.36);
+  --toggle-knob-active: #e07a5f;
+  --issue-overlay: rgba(0, 0, 0, 0.45);
+  --issue-preview-filter: blur(10px) saturate(1.05) brightness(0.9);
+}
+
+/* BASE */
+* { box-sizing: border-box; }
+
+.global-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--app-bg) 80%, transparent);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.6s ease, border-color 0.6s ease;
+}
+
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  color: var(--text);
+  transition: color 0.6s ease;
+}
+
+.nav-logo {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.6s ease;
+}
+
+.nav-links {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.nav-links a {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition:
+    color 0.6s ease,
+    border-color 0.6s ease,
+    background 0.6s ease;
+}
+
+.nav-links a:hover {
+  border-color: var(--border);
+  background: var(--soft);
+}
+
+.page {
+  min-height: calc(100vh - 64px);
   background: var(--bg);
   display: flex;
   align-items: center;
@@ -71,7 +144,8 @@ html.dv-dark {
     linear-gradient(135deg, rgba(12,12,14,0.92), rgba(8,8,10,0.9));
 }
 
-.page.dark {
+.page.dark,
+.landing.dark {
   --bg: #0f0f10;
   --window: #161618;
   --field: #1c1c1f;
@@ -670,6 +744,194 @@ button {
 .code-number-value { color: #f9a8d4; }
 .code-boolean { color: #fcd34d; }
 .code-null { color: #c084fc; }
+
+.landing {
+  min-height: calc(100vh - 64px);
+  background: var(--bg);
+  color: var(--text);
+  padding: 36px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  transition: background 0.6s ease, color 0.6s ease;
+}
+
+.landing-hero {
+  width: 100%;
+  max-width: 1160px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+}
+
+.hero-copy {
+  background: var(--window);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  transition: background 0.6s ease, border-color 0.6s ease;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.hero-copy h1 {
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  margin: 0 0 18px;
+  color: var(--muted);
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.hero-card {
+  background: var(--window);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: background 0.6s ease, border-color 0.6s ease;
+}
+
+.hero-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hero-card-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.hero-card-title {
+  font-weight: 600;
+}
+
+.hero-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hero-link {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--field);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text);
+  text-align: left;
+  transition:
+    background 0.6s ease,
+    border-color 0.6s ease,
+    color 0.6s ease,
+    transform 0.3s ease;
+}
+
+.hero-link:hover {
+  background: var(--soft);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.hero-link-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.hero-link-text {
+  color: var(--muted);
+  font-size: 13px;
+  transition: color 0.6s ease;
+}
+
+.landing-grid {
+  width: 100%;
+  max-width: 1160px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.landing-card {
+  background: var(--window);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+  transition:
+    background 0.6s ease,
+    border-color 0.6s ease,
+    color 0.6s ease,
+    transform 0.3s ease;
+}
+
+.landing-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  font-weight: 600;
+}
+
+.card-kicker {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.card-text {
+  margin: 0;
+  color: var(--muted);
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Claude-like typography using Inter */
 .claude-ui {
