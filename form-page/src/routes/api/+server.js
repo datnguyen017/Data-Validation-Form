@@ -209,5 +209,10 @@ export async function POST({ request, fetch }) {
     );
   }
 
-  return json({ success: true });
+  return json({
+    success: true,
+    itemId: createdItemId,
+    boardId: targetBoardId,
+    itemName
+  });
 }

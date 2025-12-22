@@ -136,7 +136,10 @@
         throw new Error((body as { error?: string })?.error || 'Request failed');
       }
 
-      modalMessage = 'Your functional issue has been sent.';
+      const createdId = (body as { itemId?: string })?.itemId;
+      modalMessage = createdId
+        ? `Your functional issue has been sent. Item ID: ${createdId}.`
+        : 'Your functional issue has been sent.';
       modalVariant = 'success';
     } catch (err) {
       modalMessage = err instanceof Error ? err.message : 'Something went wrong';
