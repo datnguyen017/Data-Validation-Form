@@ -91,7 +91,7 @@ export async function POST({ request, fetch }) {
     targetBoardId = FUNCTIONAL_BOARD_ID;
 
     const functionalIssueType = normalizeString(data?.functional_issue_type);
-    const otherProblem = normalizeString(data?.other_problem);
+    const problemDescription = normalizeString(data?.problem_description || data?.other_problem);
     const date = normalizeString(data?.date) || new Date().toISOString().slice(0, 10);
     const statusValue = normalizeStatusValue(data?.status || data?.status_label);
     const peopleValue = normalizePeopleValue(
@@ -99,11 +99,11 @@ export async function POST({ request, fetch }) {
     );
 
     itemName =
-      otherProblem ||
+      problemDescription ||
       (functionalIssueType ? `Functional Issue: ${functionalIssueType}` : 'Functional Issue');
 
     columnValues = removeUndefined({
-      text_mkyrz9pq: otherProblem || functionalIssueType || undefined,
+      text_mkyrz9pq: problemDescription || functionalIssueType || undefined,
       status: statusValue || undefined,
       person: peopleValue || undefined,
       date4: date ? { date } : undefined

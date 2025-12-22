@@ -5,9 +5,13 @@
   const FUNCTIONAL_ISSUE_OPTIONS = ['YAML Editor', 'Report', 'Other'];
 
   let functionalIssueType = '';
-  let otherProblem = '';
+  let problemDescription = '';
+  let submitterName = '';
+  let submitterEmail = '';
 
-  type FieldErrors = Partial<Record<'functionalIssueType' | 'otherProblem', string>>;
+  type FieldErrors = Partial<
+    Record<'functionalIssueType' | 'problemDescription' | 'submitterName' | 'submitterEmail', string>
+  >;
   let fieldErrors: FieldErrors = {};
   let showModal = false;
   let modalPayloadLines: Array<{ number: number; line: string }> = [];
@@ -31,16 +35,14 @@
     window.dispatchEvent(new CustomEvent('dv-theme', { detail: { dark } }));
   }
 
-  $: {
-    if (functionalIssueType !== 'Other' && otherProblem) otherProblem = '';
-  }
-
   function validate() {
     const problems: FieldErrors = {};
     if (!functionalIssueType) problems.functionalIssueType = 'Please select one.';
-    if (functionalIssueType === 'Other' && !otherProblem.trim()) {
-      problems.otherProblem = 'Please describe your problem.';
+    if (functionalIssueType && !problemDescription.trim()) {
+      problems.problemDescription = 'Please describe your problem.';
     }
+    if (!submitterName.trim()) problems.submitterName = 'Name is required';
+    if (!submitterEmail.trim()) problems.submitterEmail = 'Email is required';
     fieldErrors = problems;
     return Object.keys(problems).length === 0;
   }
@@ -48,7 +50,9 @@
   type FunctionalIssuePayload = {
     issue_type: 'Functional Issue';
     functional_issue_type: string;
-    other_problem?: string;
+    problem_description?: string;
+    submitter_name?: string;
+    submitter_email?: string;
     date: string;
     timestamp_iso: string;
     timestamp_local: string;
@@ -65,9 +69,9 @@
       timestamp_local: now.toLocaleString()
     };
 
-    if (functionalIssueType === 'Other') {
-      base.other_problem = otherProblem.trim();
-    }
+    if (problemDescription.trim()) base.problem_description = problemDescription.trim();
+    if (submitterName.trim()) base.submitter_name = submitterName.trim();
+    if (submitterEmail.trim()) base.submitter_email = submitterEmail.trim();
 
     return base;
   };
@@ -194,19 +198,39 @@
           {#if fieldErrors.functionalIssueType}<div class="error">{fieldErrors.functionalIssueType}</div>{/if}
         </div>
 
-        {#if functionalIssueType === 'Other'}
+        {#if functionalIssueType}
           <div class="field">
-            <label for="other-problem">Describe your problem</label>
+            <label for="problem-description">Describe your problem</label>
             <div class="subtext claude-body">Tell us what’s going wrong.</div>
             <textarea
-              id="other-problem"
+              id="problem-description"
               rows="4"
-              bind:value={otherProblem}
-              class:error={Boolean(fieldErrors.otherProblem)}
+              bind:value={problemDescription}
+              class:error={Boolean(fieldErrors.problemDescription)}
             ></textarea>
-            {#if fieldErrors.otherProblem}<div class="error">{fieldErrors.otherProblem}</div>{/if}
+            {#if fieldErrors.problemDescription}<div class="error">{fieldErrors.problemDescription}</div>{/if}
           </div>
         {/if}
+
+        <div class="field">
+          <div class="subtext claude-body" style="margin-bottom: 6px;">Submitted By</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div class="subtext">Name</div>
+              <input bind:value={submitterName} class:error={Boolean(fieldErrors.submitterName)} />
+              {#if fieldErrors.submitterName}<div class="error">{fieldErrors.submitterName}</div>{/if}
+            </div>
+            <div>
+              <div class="subtext">Email</div>
+              <input
+                type="email"
+                bind:value={submitterEmail}
+                class:error={Boolean(fieldErrors.submitterEmail)}
+              />
+              {#if fieldErrors.submitterEmail}<div class="error">{fieldErrors.submitterEmail}</div>{/if}
+            </div>
+          </div>
+        </div>
 
         <footer>
           <button type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</button>
