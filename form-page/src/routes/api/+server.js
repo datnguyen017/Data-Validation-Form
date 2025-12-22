@@ -105,7 +105,8 @@ export async function POST({ request, fetch }) {
       (functionalIssueType ? `Functional Issue: ${functionalIssueType}` : 'Functional Issue');
 
     columnValues = removeUndefined({
-      text_mkyrz9pq: problemDescription || functionalIssueType || undefined,
+      text_mkyrz9pq: functionalIssueType || undefined,
+      text_mkywsvg4: problemDescription || undefined,
       text_mkywjt2k: submitterName || undefined,
       text_mkywsd3s: submitterEmail || undefined,
       status: statusValue || undefined,
