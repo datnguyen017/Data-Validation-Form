@@ -92,6 +92,8 @@ export async function POST({ request, fetch }) {
 
     const functionalIssueType = normalizeString(data?.functional_issue_type);
     const problemDescription = normalizeString(data?.problem_description || data?.other_problem);
+    const submitterName = normalizeString(data?.submitter_name);
+    const submitterEmail = normalizeString(data?.submitter_email);
     const date = normalizeString(data?.date) || new Date().toISOString().slice(0, 10);
     const statusValue = normalizeStatusValue(data?.status || data?.status_label);
     const peopleValue = normalizePeopleValue(
@@ -104,6 +106,8 @@ export async function POST({ request, fetch }) {
 
     columnValues = removeUndefined({
       text_mkyrz9pq: problemDescription || functionalIssueType || undefined,
+      text_mkywjt2k: submitterName || undefined,
+      text_mkywsd3s: submitterEmail || undefined,
       status: statusValue || undefined,
       person: peopleValue || undefined,
       date4: date ? { date } : undefined
