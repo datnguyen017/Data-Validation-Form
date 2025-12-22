@@ -34,6 +34,35 @@ function normalizeStringArray(value) {
   return value.map((v) => String(v)).filter(Boolean);
 }
 
+/**
+ * @param {unknown} value
+ */
+function normalizeStatusValue(value) {
+  if (!value) return undefined;
+  if (typeof value === 'string') return { label: value.trim() };
+  if (typeof value === 'number') return { index: value };
+  if (typeof value === 'object') return value;
+  return undefined;
+}
+
+/**
+ * @param {unknown} value
+ */
+function normalizePeopleValue(value) {
+  if (!value) return undefined;
+  if (typeof value === 'number') {
+    return { personsAndTeams: [{ id: value, kind: 'person' }] };
+  }
+  if (Array.isArray(value)) {
+    const ids = value.map((v) => Number(v)).filter((v) => Number.isFinite(v));
+    return ids.length
+      ? { personsAndTeams: ids.map((id) => ({ id, kind: 'person' })) }
+      : undefined;
+  }
+  if (typeof value === 'object') return value;
+  return undefined;
+}
+
 export async function POST({ request, fetch }) {
   const MONDAY_API_KEY = env.MONDAY_API_KEY;
   const BOARD_ID = env.MONDAY_BOARD_ID || DEFAULT_BOARD_ID;
@@ -64,6 +93,10 @@ export async function POST({ request, fetch }) {
     const functionalIssueType = normalizeString(data?.functional_issue_type);
     const otherProblem = normalizeString(data?.other_problem);
     const date = normalizeString(data?.date) || new Date().toISOString().slice(0, 10);
+    const statusValue = normalizeStatusValue(data?.status || data?.status_label);
+    const peopleValue = normalizePeopleValue(
+      data?.person || data?.person_id || data?.person_ids
+    );
 
     itemName =
       otherProblem ||
@@ -71,6 +104,8 @@ export async function POST({ request, fetch }) {
 
     columnValues = removeUndefined({
       text_mkyrz9pq: otherProblem || functionalIssueType || undefined,
+      status: statusValue || undefined,
+      person: peopleValue || undefined,
       date4: date ? { date } : undefined
     });
   } else if (issueType === 'Data Request') {
