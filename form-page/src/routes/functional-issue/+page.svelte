@@ -138,7 +138,7 @@
 
       const createdId = (body as { itemId?: string })?.itemId;
       modalMessage = createdId
-        ? `Your functional issue has been sent. Item ID: ${createdId}.`
+        ? `Your functional issue has been sent.`
         : 'Your functional issue has been sent.';
       modalVariant = 'success';
     } catch (err) {
