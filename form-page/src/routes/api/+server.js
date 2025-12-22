@@ -4,7 +4,7 @@ import { env } from '$env/dynamic/private';
 const MONDAY_API = 'https://api.monday.com/v2';
 const DEFAULT_BOARD_ID = '18391825440';
 const DEFAULT_DATA_REQUEST_BOARD_ID = '18392625365';
-const DEFAULT_FUNCTIONAL_BOARD_ID = DEFAULT_BOARD_ID;
+const DEFAULT_FUNCTIONAL_BOARD_ID = '18392629306';
 
 /**
  * @param {Record<string, unknown>} obj
